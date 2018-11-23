@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="10dp"
+        android:paddingTop="5dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="5dp"
+        android:drawablePadding="10dp"
+        android:drawableLeft="@mipmap/ic_launcher_round"
+        android:drawableStart="@mipmap/ic_launcher_round"
+        android:background="@drawable/default_selector_recycler_item"
+        android:textAlignment="viewStart"
+        android:gravity="center_vertical|start" />
+
+    <FrameLayout
+        android:layout_width="1000dp"
+        android:layout_height="match_parent">
+
+        <!-- Put your menu items here. The first one will be shown at the horizontal start. -->
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/orange">
+
+            <TextView
+                android:id="@+id/button_rename"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:text="@string/rename"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:gravity="center" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/red">
+
+            <TextView
+                android:id="@+id/button_delete"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:text="@string/delete"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:gravity="center" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/skyBlue">
+
+            <TextView
+                android:id="@+id/button_top"
+                android:layout_width="80dp"
+                android:layout_height="match_parent"
+                android:text="@string/top"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:gravity="center" />
+        </FrameLayout>
+    </FrameLayout>
+</LinearLayout>

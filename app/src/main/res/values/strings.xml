@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">SlidingItemMenuRecyclerView</string>
+    <string name="rename">RENAME</string>
+    <string name="delete">DELETE</string>
+    <string name="top">TOP</string>
+    <string name="github">GitHub</string>
+</resources>
