@@ -5,10 +5,14 @@
 
 package com.liuzhenlin.simrv;
 
-import android.support.annotation.NonNull;
-import android.support.v4.view.ViewCompat;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
+
+/**
+ * @author 刘振林
+ */
 public class Utils {
     public static boolean isLayoutRtl(@NonNull View view) {
         return ViewCompat.getLayoutDirection(view) == ViewCompat.LAYOUT_DIRECTION_RTL;

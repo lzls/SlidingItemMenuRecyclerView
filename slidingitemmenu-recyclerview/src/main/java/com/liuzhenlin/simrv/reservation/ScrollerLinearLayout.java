@@ -6,13 +6,14 @@
 package com.liuzhenlin.simrv.reservation;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.widget.LinearLayout;
 import android.widget.Scroller;
 
+import androidx.annotation.Nullable;
+
 /**
- * @author <a href="mailto:2233788867@qq.com">刘振林</a>
+ * @author 刘振林
  */
 public class ScrollerLinearLayout extends LinearLayout implements ScrollerView {
     private final Scroller mScroller;

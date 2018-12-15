@@ -13,10 +13,6 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Rect;
 import android.os.Build;
-import android.support.annotation.Nullable;
-import android.support.v4.util.SimpleArrayMap;
-import android.support.v4.view.ViewCompat;
-import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -31,11 +27,18 @@ import android.widget.FrameLayout;
 import java.util.LinkedList;
 import java.util.List;
 
+import androidx.annotation.Nullable;
+import androidx.collection.SimpleArrayMap;
+import androidx.core.view.ViewCompat;
+import androidx.recyclerview.widget.RecyclerView;
+
 /**
  * @author <a href="mailto:2233788867@qq.com">刘振林</a>
  */
 public class SlidingItemMenuRecyclerView extends RecyclerView {
     private static final String TAG = "SlidingItemMenuRecyclerView";
+
+    private boolean mIsVerticalScrollBarEnabled;
 
     /**
      * @see #isItemScrollingEnabled()
@@ -173,6 +176,12 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         ta.recycle();
     }
 
+    @Override
+    public void setVerticalScrollBarEnabled(boolean verticalScrollBarEnabled) {
+        mIsVerticalScrollBarEnabled = verticalScrollBarEnabled;
+        super.setVerticalScrollBarEnabled(verticalScrollBarEnabled);
+    }
+
     private void resolveActiveItemMenuBounds() {
         final int itemMenuWidth = (int) mActiveItem.getTag(TAG_ITEM_MENU_WIDTH);
         final int left = Utils.isLayoutRtl(mActiveItem) ?
@@ -184,12 +193,20 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent e) {
+        final int action = e.getAction();
+        if (action == MotionEvent.ACTION_DOWN) {
+            // Reset things for a new event stream, just in case we didn't get
+            // the whole previous stream.
+            resetTouch();
+        }
+
+        if (mVelocityTracker == null)
+            mVelocityTracker = VelocityTracker.obtain();
+        mVelocityTracker.addMovement(e);
+
         boolean intercept = false;
         switch (e.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                // Ensures the touch caches are in the initial state when a new gesture starts.
-                resetTouch();
-
                 mDownX = (int) e.getX();
                 mDownY = (int) e.getY();
                 markCurrTouchPoint(mDownX, mDownY);
@@ -288,6 +305,15 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent e) {
+        if (mIsVerticalScrollBarEnabled) {
+            // Makes the vertical scroll bar disappear while an itemView is being dragged.
+            super.setVerticalScrollBarEnabled(!mIsItemBeingDragged);
+        }
+
+        if (mVelocityTracker == null)
+            mVelocityTracker = VelocityTracker.obtain();
+        mVelocityTracker.addMovement(e);
+
         switch (e.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_POINTER_DOWN:
             case MotionEvent.ACTION_POINTER_UP:
@@ -302,11 +328,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                 if (!mIsItemScrollingEnabled && cancelTouch()) {
                     return true;
                 }
-                if (mIsItemBeingDragged) { // if the user is dragging itemView
-                    if (mVelocityTracker == null)
-                        mVelocityTracker = VelocityTracker.obtain();
-                    mVelocityTracker.addMovement(e);
-
+                if (mIsItemBeingDragged) {
                     // Positive when the user's finger slides towards the right.
                     float dx = mTouchX[mTouchX.length - 1] - mTouchX[mTouchX.length - 2];
                     // Positive when the itemView scrolls towards the right.
@@ -349,7 +371,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                     final float translationX = mActiveItem.getChildAt(0).getTranslationX();
                     final int itemMenuWidth = (int) mActiveItem.getTag(TAG_ITEM_MENU_WIDTH);
                     //noinspection StatementWithEmptyBody
-                    if (translationX == 0f) { // itemView's menu is closed
+                    if (translationX == 0) { // itemView's menu is closed
 
                         // itemView's menu is totally opened
                     } else if (!rtl && translationX == -itemMenuWidth
@@ -357,32 +379,31 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                         mFullyOpenedItem = mActiveItem;
 
                     } else {
-                        if (mVelocityTracker != null) {
-                            final float dx = rtl
-                                    ? mTouchX[mTouchX.length - 2] - mTouchX[mTouchX.length - 1]
-                                    : mTouchX[mTouchX.length - 1] - mTouchX[mTouchX.length - 2];
+                        final float dx = rtl
+                                ? mTouchX[mTouchX.length - 2] - mTouchX[mTouchX.length - 1]
+                                : mTouchX[mTouchX.length - 1] - mTouchX[mTouchX.length - 2];
+                        mVelocityTracker.computeCurrentVelocity(1000);
+                        final float velocityX = Math.abs(mVelocityTracker.getXVelocity());
+                        // If the speed at which the user's finger lifted is greater than 200 dp/s
+                        // while user was scrolling itemView towards the horizontal start,
+                        // make it automatically scroll to open and show its menu.
+                        if (dx < 0 && velocityX >= mItemMinimumFlingVelocity) {
+                            smoothTranslateItemViewXTo(mActiveItem,
+                                    rtl ? itemMenuWidth : -itemMenuWidth,
+                                    mItemScrollDuration);
+                            mFullyOpenedItem = mActiveItem;
+                            clearTouch();
+                            cancelParentTouch(e);
+                            return true;
 
-                            mVelocityTracker.computeCurrentVelocity(1000);
-                            final float velocityX = Math.abs(mVelocityTracker.getXVelocity());
                             // If the speed at which the user's finger lifted is greater than 200 dp/s
-                            // while user was scrolling itemView towards the horizontal start,
-                            // make it automatically scroll to open and show its menu.
-                            if (dx < 0 && velocityX >= mItemMinimumFlingVelocity) {
-                                smoothTranslateItemViewXTo(mActiveItem,
-                                        rtl ? itemMenuWidth : -itemMenuWidth,
-                                        mItemScrollDuration);
-                                mFullyOpenedItem = mActiveItem;
-                                clearTouch();
-                                return true;
-
-                                // If the speed at which the user's finger lifted is greater than 200 dp/s
-                                // while user was scrolling itemView towards the end of horizontal,
-                                // make its menu hidden.
-                            } else if (dx > 0 && velocityX >= mItemMinimumFlingVelocity) {
-                                releaseItemView(true);
-                                clearTouch();
-                                return true;
-                            }
+                            // while user was scrolling itemView towards the end of horizontal,
+                            // make its menu hidden.
+                        } else if (dx > 0 && velocityX >= mItemMinimumFlingVelocity) {
+                            releaseItemView(true);
+                            clearTouch();
+                            cancelParentTouch(e);
+                            return true;
                         }
 
                         final float middle = itemMenuWidth / 2f;
@@ -400,20 +421,15 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                         }
                     }
                     clearTouch();
-                    return true;
+                    cancelParentTouch(e);
+                    return true; // Returns true here in case of a fling started in this up event.
                 }
             case MotionEvent.ACTION_CANCEL:
-                if (cancelTouch()) {
-                    return true;
-                }
+                cancelTouch();
                 break;
         }
 
-        if (super.onTouchEvent(e)) {
-            setVerticalScrollBarEnabled(true);
-            return true;
-        }
-        return false;
+        return super.onTouchEvent(e);
     }
 
     private void markCurrTouchPoint(float x, float y) {
@@ -424,16 +440,9 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     }
 
     private boolean tryHandleItemScrollingEvent() {
-        // There's no scrollable itemView being touched by user.
-        if (mActiveItem == null) {
-            return false;
-        }
-        // Unable to scroll it
-        if (!mIsItemScrollingEnabled) {
-            return false;
-        }
-        // The list may be currently scrolling
-        if (getScrollState() != SCROLL_STATE_IDLE) {
+        if (mActiveItem == null /* There's no scrollable itemView being touched by user */
+                || !mIsItemScrollingEnabled /* Unable to scroll it */
+                || getScrollState() != SCROLL_STATE_IDLE /* The list may be currently scrolling */) {
             return false;
         }
         // The layout's orientation may not be vertical.
@@ -441,20 +450,16 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
             return false;
         }
 
-        final float dx = mTouchX[mTouchX.length - 1] - mDownX;
-        final float absDX = Math.abs(dx);
-        if (absDX > mTouchSlop) {
-            final float absDY = Math.abs(mTouchY[mTouchY.length - 1] - mDownY);
+        final float absDy = Math.abs(mTouchY[mTouchY.length - 1] - mDownY);
+        if (absDy <= mTouchSlop) {
+            final float dx = mTouchX[mTouchX.length - 1] - mDownX;
             if (mOpenedItems.size() == 0) {
                 final boolean rtl = Utils.isLayoutRtl(mActiveItem);
-                mIsItemBeingDragged = rtl && dx > absDY || !rtl && dx < -absDY;
+                mIsItemBeingDragged = rtl && dx > mTouchSlop || !rtl && dx < -mTouchSlop;
             } else {
-                mIsItemBeingDragged = absDX > absDY;
+                mIsItemBeingDragged = Math.abs(dx) > mTouchSlop;
             }
             if (mIsItemBeingDragged) {
-                // Makes the vertical scroll bar disappear while the itemView is being dragged.
-                setVerticalScrollBarEnabled(false);
-
                 requestParentDisallowInterceptTouchEvent();
                 return true;
             }
@@ -507,6 +512,13 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         if (mVelocityTracker != null) {
             mVelocityTracker.clear();
         }
+    }
+
+    private void cancelParentTouch(MotionEvent e) {
+        final int action = e.getAction();
+        e.setAction(MotionEvent.ACTION_CANCEL);
+        super.onTouchEvent(e);
+        e.setAction(action);
     }
 
     /**
@@ -618,13 +630,12 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         }
 
         final FrameLayout itemMenu = (FrameLayout) itemView.getChildAt(itemChildCount - 1);
-        final int menuItemCount = itemMenu.getChildCount();
         final int[] menuItemWidths = (int[]) itemView.getTag(TAG_MENU_ITEM_WIDTHS);
-        float menuItemFrameDX = 0;
-        for (int i = 1; i < menuItemCount; i++) {
+        float menuItemFrameDx = 0;
+        for (int i = 1, menuItemCount = itemMenu.getChildCount(); i < menuItemCount; i++) {
             final FrameLayout menuItemFrame = (FrameLayout) itemMenu.getChildAt(i);
-            menuItemFrameDX -= dx * (float) menuItemWidths[i - 1] / (float) itemMenuWidth;
-            menuItemFrame.setTranslationX(menuItemFrame.getTranslationX() + menuItemFrameDX);
+            menuItemFrameDx -= dx * (float) menuItemWidths[i - 1] / (float) itemMenuWidth;
+            menuItemFrame.setTranslationX(menuItemFrame.getTranslationX() + menuItemFrameDx);
         }
     }
 
@@ -635,8 +646,8 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
         TranslateItemViewXAnimator(final SlidingItemMenuRecyclerView parent, final ViewGroup itemView) {
             listener = new AnimatorListenerAdapter() {
-                final SimpleArrayMap<View, /* Layer Type */ Integer> childrenLayerTypes
-                        = new SimpleArrayMap<>(0);
+                final SimpleArrayMap<View, /* Layer Type */ Integer> childrenLayerTypes =
+                        new SimpleArrayMap<>(0);
 
                 void ensureChildrenLayerTypes() {
                     final int itemChildCount = itemView.getChildCount();
@@ -698,6 +709,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        releaseItemViewInternal(mFullyOpenedItem, 0);
         if (mOpenedItems.size() > 0) {
             final ViewGroup[] openedItems = mOpenedItems.toArray(new ViewGroup[0]);
             for (ViewGroup openedItem : openedItems) {

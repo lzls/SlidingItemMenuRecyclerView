@@ -6,7 +6,7 @@
 package com.liuzhenlin.simrv.reservation;
 
 /**
- * @author <a href="mailto:2233788867@qq.com">刘振林</a>
+ * @author 刘振林
  */
 public interface ScrollerView {
 

@@ -1,1 +1,1 @@
-include ':app',':sliding-item-menu-recyclerview-lib'
+include ':app',':slidingitemmenu-recyclerview'
