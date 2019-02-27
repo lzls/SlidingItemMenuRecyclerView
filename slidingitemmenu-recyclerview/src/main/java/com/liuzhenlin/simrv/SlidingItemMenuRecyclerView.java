@@ -564,7 +564,6 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
             } else if (animator.isRunning()) {
                 animator.removeListener(animator.listener);
                 animator.cancel();
-                animator.cachedDeltaTransX = 0;
                 canceled = true;
             }
             animator.setFloatValues(0, dx);
@@ -673,8 +672,6 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
                 @Override
                 public void onAnimationStart(Animator animation) {
-                    cachedDeltaTransX = 0;
-
                     ensureChildrenLayerTypes();
                     for (int i = childrenLayerTypes.size() - 1; i >= 0; i--) {
                         final View child = childrenLayerTypes.keyAt(i);
@@ -703,6 +700,15 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                     cachedDeltaTransX = deltaTransX;
                 }
             });
+        }
+
+        @Override
+        public void start() {
+            // NOTE: 'cachedDeltaTransX' MUST be reset before super.start() is invoked
+            // for the reason that 'onAnimationUpdate' will be called in the super method
+            // on platforms prior to Nougat.
+            cachedDeltaTransX = 0;
+            super.start();
         }
     }
 
