@@ -98,7 +98,7 @@ in the developers branch.
 
 
 ## License
-Copyright 2017-2018 刘振林
+Copyright 2017-2019 刘振林
 
 Licensed under the Apache License, Version 2.0 (the "License"); <br>
 you may not use this file except in compliance with the License. You may obtain a copy of the License at

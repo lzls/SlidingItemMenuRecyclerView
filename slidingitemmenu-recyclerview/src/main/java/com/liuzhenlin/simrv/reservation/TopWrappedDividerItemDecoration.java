@@ -10,11 +10,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 
-import com.liuzhenlin.simrv.BuildConfig;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.liuzhenlin.simrv.BuildConfig;
 
 public class TopWrappedDividerItemDecoration extends RecyclerView.ItemDecoration {
     public static final int HORIZONTAL = LinearLayout.HORIZONTAL;
@@ -147,7 +147,7 @@ public class TopWrappedDividerItemDecoration extends RecyclerView.ItemDecoration
         final int childCount = parent.getChildCount();
         for (int i = 0; i < childCount; i++) {
             View child = parent.getChildAt(i);
-            parent.getLayoutManager().getDecoratedBoundsWithMargins(child, mBounds);
+            parent.getDecoratedBoundsWithMargins(child, mBounds);
             final int right = mBounds.right + Math.round(child.getTranslationX());
             final int left = right - mDivider.getIntrinsicWidth();
             mDivider.setBounds(left, top, right, bottom);
