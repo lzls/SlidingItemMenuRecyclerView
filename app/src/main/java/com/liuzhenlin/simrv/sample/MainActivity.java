@@ -12,14 +12,14 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView;
 
 /**
  * @author 刘振林
@@ -51,16 +51,54 @@ public class MainActivity extends AppCompatActivity {
                     adapter.notifyItemRangeInserted(old, 2);
 
                     srl.setRefreshing(false);
-                    simrv.setItemScrollingEnabled(true);
+                    simrv.setItemDraggable(true);
                 }
             };
 
             @Override
             public void onRefresh() {
                 simrv.releaseItemView(false);
-                simrv.setItemScrollingEnabled(false);
+                simrv.setItemDraggable(false);
 
                 srl.postDelayed(refreshListRunnable, 2000);
+            }
+        });
+
+        final int duration = simrv.getItemScrollDuration();
+        simrv.post(new Runnable() {
+            @Override
+            public void run() {
+                simrv.openItemAtPosition(0);
+                simrv.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        simrv.openItemAtPosition(1);
+                        simrv.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                simrv.openItemAtPosition(2);
+                                simrv.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        simrv.openItemAtPosition(3);
+                                        simrv.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                simrv.openItemAtPosition(4);
+                                                simrv.postDelayed(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        simrv.openItemAtPosition(5);
+                                                    }
+                                                }, duration);
+                                            }
+                                        }, duration);
+                                    }
+                                }, duration);
+                            }
+                        }, duration);
+                    }
+                }, duration);
             }
         });
     }

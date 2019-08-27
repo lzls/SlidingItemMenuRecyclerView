@@ -24,13 +24,13 @@ import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author <a href="mailto:2233788867@qq.com">刘振林</a>
@@ -41,10 +41,10 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     private boolean mIsVerticalScrollBarEnabled;
 
     /**
-     * @see #isItemScrollingEnabled()
-     * @see #setItemScrollingEnabled(boolean)
+     * @see #isItemDraggable()
+     * @see #setItemDraggable(boolean)
      */
-    private boolean mIsItemScrollingEnabled;
+    private boolean mIsItemDraggable;
 
     /** True, if an item view is being dragged by the user. */
     private boolean mIsItemBeingDragged;
@@ -113,20 +113,34 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
             new OvershootInterpolator(1.0f);
 
     /**
-     * @return whether it is enabled to scroll item views or not
+     * @deprecated Use {@link #isItemDraggable()} instead
      */
     public boolean isItemScrollingEnabled() {
-        return mIsItemScrollingEnabled;
+        return isItemDraggable();
     }
 
     /**
-     * Enables the scrolling of item views.
-     * <p>
-     * <strong>Note:</strong> This only makes sense for RecyclerViews with a layout in vertical
-     * orientation.
+     * @return whether it is enabled to scroll item views in touch mode or not
+     */
+    public boolean isItemDraggable() {
+        return mIsItemDraggable;
+    }
+
+    /**
+     * @deprecated Use {@link #setItemDraggable(boolean)} instead
      */
     public void setItemScrollingEnabled(boolean enabled) {
-        mIsItemScrollingEnabled = enabled;
+        setItemDraggable(enabled);
+    }
+
+    /**
+     * Sets whether the item views can be dragged by user.
+     * <p>
+     * If unable to be dragged, they may be scrolled through the code like:
+     * <code>simrv.openItemAtPosition(0, true);</code>
+     */
+    public void setItemDraggable(boolean draggable) {
+        mIsItemDraggable = draggable;
     }
 
     /**
@@ -169,7 +183,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
         final TypedArray ta = context.obtainStyledAttributes(attrs,
                 R.styleable.SlidingItemMenuRecyclerView, defStyle, 0);
-        setItemScrollingEnabled(ta.getBoolean(R.styleable
+        setItemDraggable(ta.getBoolean(R.styleable
                 .SlidingItemMenuRecyclerView_itemScrollingEnabled, true));
         setItemScrollDuration(ta.getInteger(R.styleable
                 .SlidingItemMenuRecyclerView_itemScrollDuration, DEFAULT_ITEM_SCROLL_DURATION));
@@ -180,6 +194,35 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     public void setVerticalScrollBarEnabled(boolean verticalScrollBarEnabled) {
         mIsVerticalScrollBarEnabled = verticalScrollBarEnabled;
         super.setVerticalScrollBarEnabled(verticalScrollBarEnabled);
+    }
+
+    private boolean childHasMenu(ViewGroup itemView) {
+        if (itemView.getVisibility() != VISIBLE) return false;
+
+        final int itemChildCount = itemView.getChildCount();
+        final View itemLastChild = itemView.getChildAt(itemChildCount >= 2 ?
+                itemChildCount - 1 : 1);
+        if (!(itemLastChild instanceof FrameLayout)) return false;
+
+        final FrameLayout itemMenu = (FrameLayout) itemLastChild;
+        final int menuItemCount = itemMenu.getChildCount();
+        final int[] menuItemWidths = new int[menuItemCount];
+        int itemMenuWidth = 0;
+        for (int i = 0; i < menuItemCount; i++) {
+            //@formatter:off
+            menuItemWidths[i] = ((FrameLayout) itemMenu
+                                .getChildAt(i))
+                                .getChildAt(0)
+                                .getWidth();
+            //@formatter:on
+            itemMenuWidth += menuItemWidths[i];
+        }
+        if (itemMenuWidth > 0) {
+            itemView.setTag(TAG_ITEM_MENU_WIDTH, itemMenuWidth);
+            itemView.setTag(TAG_MENU_ITEM_WIDTHS, menuItemWidths);
+            return true;
+        }
+        return false;
     }
 
     private void resolveActiveItemMenuBounds() {
@@ -213,35 +256,13 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
                 for (int i = getChildCount() - 1; i >= 0; i--) {
                     final View child = getChildAt(i);
-                    if (child.getVisibility() != VISIBLE) continue;
-
                     if (!(child instanceof ViewGroup)) continue;
-                    final ViewGroup itemView = (ViewGroup) child;
 
+                    final ViewGroup itemView = (ViewGroup) child;
                     itemView.getHitRect(mActiveItemBounds);
                     if (!mActiveItemBounds.contains(mDownX, mDownY)) continue;
 
-                    final int itemChildCount = itemView.getChildCount();
-                    final View itemLastChild = itemView.getChildAt(itemChildCount >= 2 ?
-                            itemChildCount - 1 : 1);
-                    if (!(itemLastChild instanceof FrameLayout)) break;
-                    final FrameLayout itemMenu = (FrameLayout) itemLastChild;
-
-                    final int menuItemCount = itemMenu.getChildCount();
-                    final int[] menuItemWidths = new int[menuItemCount];
-                    int itemMenuWidth = 0;
-                    for (int j = 0; j < menuItemCount; j++) {
-                        //@formatter:off
-                        menuItemWidths[j] = ((FrameLayout) itemMenu
-                                            .getChildAt(j))
-                                            .getChildAt(0)
-                                            .getWidth();
-                        //@formatter:on
-                        itemMenuWidth += menuItemWidths[j];
-                    }
-                    if (itemMenuWidth > 0) {
-                        itemView.setTag(TAG_ITEM_MENU_WIDTH, itemMenuWidth);
-                        itemView.setTag(TAG_MENU_ITEM_WIDTHS, menuItemWidths);
+                    if (childHasMenu(itemView)) {
                         mActiveItem = itemView;
                     }
                     break;
@@ -325,7 +346,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
             case MotionEvent.ACTION_MOVE:
                 markCurrTouchPoint(e.getX(), e.getY());
 
-                if (!mIsItemScrollingEnabled && cancelTouch()) {
+                if (!mIsItemDraggable && cancelTouch()) {
                     return true;
                 }
                 if (mIsItemBeingDragged) {
@@ -366,7 +387,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                 break;
 
             case MotionEvent.ACTION_UP:
-                if (mIsItemScrollingEnabled && mIsItemBeingDragged) {
+                if (mIsItemDraggable && mIsItemBeingDragged) {
                     final boolean rtl = Utils.isLayoutRtl(mActiveItem);
                     final float translationX = mActiveItem.getChildAt(0).getTranslationX();
                     final int itemMenuWidth = (int) mActiveItem.getTag(TAG_ITEM_MENU_WIDTH);
@@ -441,7 +462,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
     private boolean tryHandleItemScrollingEvent() {
         if (mActiveItem == null /* There's no scrollable itemView being touched by user */
-                || !mIsItemScrollingEnabled /* Unable to scroll it */
+                || !mIsItemDraggable /* Unable to scroll it */
                 || getScrollState() != SCROLL_STATE_IDLE /* The list may be currently scrolling */) {
             return false;
         }
@@ -522,7 +543,16 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     }
 
     /**
-     * Makes the current item view whose menu is fully open scroll back to its original position.
+     * Smoothly scrolls the current item view whose menu is open back to its original position.
+     *
+     * @see #releaseItemView(boolean)
+     */
+    public void releaseItemView() {
+        releaseItemView(true);
+    }
+
+    /**
+     * Scrolls the current item view whose menu is open back to its original position.
      *
      * @param animate whether this scroll should be smooth
      */
@@ -544,18 +574,61 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         }
     }
 
+    /**
+     * Smoothly opens the menu of the item view at the specified adapter position
+     *
+     * @param position the position of the item in the data set of the adapter
+     * @return true if the menu of the child view that represents the given position can be opened;
+     * false if the position is not laid out or the item does not have a menu.
+     * @see #openItemAtPosition(int, boolean)
+     */
+    public boolean openItemAtPosition(int position) {
+        return openItemAtPosition(position, true);
+    }
+
+    /**
+     * Opens the menu of the item view at the specified adapter position
+     *
+     * @param position the position of the item in the data set of the adapter
+     * @param animate  whether this scroll should be smooth
+     * @return true if the menu of the child view that represents the given position can be opened;
+     * false if the position is not laid out or the item does not have a menu.
+     */
+    public boolean openItemAtPosition(int position, boolean animate) {
+        final LayoutManager lm = getLayoutManager();
+        if (lm == null) return false;
+
+        final View view = lm.findViewByPosition(position);
+        if (!(view instanceof ViewGroup)) return false;
+
+        final ViewGroup itemView = (ViewGroup) view;
+        if (mFullyOpenedItem != itemView && childHasMenu(itemView)) {
+            // First, cancels the item view being touched or previously fully opened (if any)
+            if (!cancelTouch()) {
+                releaseItemView(animate);
+            }
+
+            smoothTranslateItemViewXTo(itemView,
+                    Utils.isLayoutRtl(itemView)
+                            ? (int) itemView.getTag(TAG_ITEM_MENU_WIDTH)
+                            : -(int) (itemView.getTag(TAG_ITEM_MENU_WIDTH)),
+                    animate ? mItemScrollDuration : 0);
+            mFullyOpenedItem = itemView;
+            return true;
+        }
+        return false;
+    }
+
     private void smoothTranslateItemViewXTo(ViewGroup itemView, float x, int duration) {
         smoothTranslateItemViewXBy(itemView, x - itemView.getChildAt(0).getTranslationX(),
                 duration);
     }
 
     private void smoothTranslateItemViewXBy(ViewGroup itemView, float dx, int duration) {
-        if (dx == 0) return;
-
         TranslateItemViewXAnimator animator =
                 (TranslateItemViewXAnimator) itemView.getTag(TAG_ITEM_ANIMATOR);
 
-        if (duration > 0) {
+        if (dx != 0 && duration > 0) {
             boolean canceled = false;
             if (animator == null) {
                 animator = new TranslateItemViewXAnimator(this, itemView);
@@ -579,11 +652,12 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
                 animator.addListener(animator.listener);
             }
         } else {
-            // If duration <= 0, then scroll the 'itemView' directly to prevent a redundant call
-            // to the animator.
+            // Checks if there is an animator running for the given item view even if dx == 0
             if (animator != null && animator.isRunning()) {
                 animator.cancel();
             }
+            // If duration <= 0, then scroll the 'itemView' directly to prevent a redundant call
+            // to the animator.
             baseTranslateItemViewXBy(itemView, dx);
         }
     }
@@ -638,7 +712,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         }
     }
 
-    private static class TranslateItemViewXAnimator extends ValueAnimator {
+    private static final class TranslateItemViewXAnimator extends ValueAnimator {
         final AnimatorListener listener;
 
         float cachedDeltaTransX;
