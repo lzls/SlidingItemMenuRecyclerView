@@ -56,7 +56,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     private boolean mHasItemFullyOpenOnActionDown;
 
     /** Distance to travel before drag may begin */
-    protected final float mTouchSlop;
+    protected final int mTouchSlop;
 
     private int mDownX;
     private int mDownY;
@@ -115,6 +115,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     /**
      * @deprecated Use {@link #isItemDraggable()} instead
      */
+    @Deprecated
     public boolean isItemScrollingEnabled() {
         return isItemDraggable();
     }
@@ -129,6 +130,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     /**
      * @deprecated Use {@link #setItemDraggable(boolean)} instead
      */
+    @Deprecated
     public void setItemScrollingEnabled(boolean enabled) {
         setItemDraggable(enabled);
     }
@@ -177,14 +179,19 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
     public SlidingItemMenuRecyclerView(Context context, @Nullable AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        final float dp = context.getResources().getDisplayMetrics().density;
-        mTouchSlop = ViewConfiguration.getTouchSlop() * dp;
-        mItemMinimumFlingVelocity = 200f * dp;
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        mItemMinimumFlingVelocity = 200f * getResources().getDisplayMetrics().density;
 
         final TypedArray ta = context.obtainStyledAttributes(attrs,
                 R.styleable.SlidingItemMenuRecyclerView, defStyle, 0);
-        setItemDraggable(ta.getBoolean(R.styleable
-                .SlidingItemMenuRecyclerView_itemScrollingEnabled, true));
+        if (ta.hasValue(R.styleable.SlidingItemMenuRecyclerView_itemDraggable)) {
+            setItemDraggable(ta.getBoolean(R.styleable
+                    .SlidingItemMenuRecyclerView_itemDraggable, true));
+        } else {
+            // Libraries with version code prior to 5 use the itemScrollingEnabled attr only.
+            setItemDraggable(ta.getBoolean(R.styleable
+                    .SlidingItemMenuRecyclerView_itemScrollingEnabled /* deprecated */, true));
+        }
         setItemScrollDuration(ta.getInteger(R.styleable
                 .SlidingItemMenuRecyclerView_itemScrollDuration, DEFAULT_ITEM_SCROLL_DURATION));
         ta.recycle();
@@ -248,7 +255,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         mVelocityTracker.addMovement(e);
 
         boolean intercept = false;
-        switch (e.getAction()) {
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
                 mDownX = (int) e.getX();
                 mDownY = (int) e.getY();
@@ -496,8 +503,12 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     }
 
     private boolean cancelTouch() {
+        return cancelTouch(true);
+    }
+
+    private boolean cancelTouch(boolean animate) {
         if (mIsItemBeingDragged) {
-            releaseItemView(true);
+            releaseItemView(animate);
             clearTouch();
             return true;
         }
@@ -508,7 +519,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         //    and the current one has not been scrolled at all, set 'mActiveItem' to null.
         if (mHasItemFullyOpenOnActionDown) {
             if (mActiveItem == mFullyOpenedItem) {
-                releaseItemView(true);
+                releaseItemView(animate);
             }
             clearTouch();
             return true;
@@ -604,7 +615,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         final ViewGroup itemView = (ViewGroup) view;
         if (mFullyOpenedItem != itemView && childHasMenu(itemView)) {
             // First, cancels the item view being touched or previously fully opened (if any)
-            if (!cancelTouch()) {
+            if (!cancelTouch(animate)) {
                 releaseItemView(animate);
             }
 
