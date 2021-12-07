@@ -10,6 +10,13 @@ as there may not have been a similar implementation on other RecyclerView librar
 </div>
 
 
+## Documentation
+
+* The [release notes][] document the major changes in each release.
+
+[release notes]: https://github.com/lzls/SlidingItemMenuRecyclerView/blob/master/RELEASE_NOTES.md
+
+
 ## Usage
 The layout file of RecyclerView's itemView needs just to follow the one below and everything
 will work normally without any more extra code to be written in your class file.
