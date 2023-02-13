@@ -1,5 +1,9 @@
 # Release Notes
 
+### 2.0.1 (2023-02-13)
+* Library
+    * Fix bug where visibility set for child of RecyclerView item might not work as expected.
+
 ### 2.0 (2021-03-02)
 * No notes provided.
 
