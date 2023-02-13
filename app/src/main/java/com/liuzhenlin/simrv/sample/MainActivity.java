@@ -41,18 +41,15 @@ public class MainActivity extends AppCompatActivity {
         simrv.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
 
         srl.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            final Runnable refreshListRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    RecyclerAdapter adapter = ((RecyclerAdapter) simrv.getAdapter());
-                    assert adapter != null;
-                    final int old = adapter.itemCount;
-                    adapter.itemCount += 3;
-                    adapter.notifyItemRangeInserted(old, 2);
+            final Runnable refreshListRunnable = () -> {
+                RecyclerAdapter adapter = ((RecyclerAdapter) simrv.getAdapter());
+                assert adapter != null;
+                final int old = adapter.itemCount;
+                adapter.itemCount += 3;
+                adapter.notifyItemRangeInserted(old, 2);
 
-                    srl.setRefreshing(false);
-                    simrv.setItemDraggable(true);
-                }
+                srl.setRefreshing(false);
+                simrv.setItemDraggable(true);
             };
 
             @Override
@@ -65,41 +62,21 @@ public class MainActivity extends AppCompatActivity {
         });
 
         final int duration = simrv.getItemScrollDuration();
-        simrv.post(new Runnable() {
-            @Override
-            public void run() {
-                simrv.openItemAtPosition(0);
-                simrv.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        simrv.openItemAtPosition(1);
-                        simrv.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                simrv.openItemAtPosition(2);
-                                simrv.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        simrv.openItemAtPosition(3);
-                                        simrv.postDelayed(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                simrv.openItemAtPosition(4);
-                                                simrv.postDelayed(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        simrv.openItemAtPosition(5);
-                                                    }
-                                                }, duration);
-                                            }
-                                        }, duration);
-                                    }
-                                }, duration);
-                            }
+        simrv.post(() -> {
+            simrv.openItemAtPosition(0);
+            simrv.postDelayed(() -> {
+                simrv.openItemAtPosition(1);
+                simrv.postDelayed(() -> {
+                    simrv.openItemAtPosition(2);
+                    simrv.postDelayed(() -> {
+                        simrv.openItemAtPosition(3);
+                        simrv.postDelayed(() -> {
+                            simrv.openItemAtPosition(4);
+                            simrv.postDelayed(() -> simrv.openItemAtPosition(5), duration);
                         }, duration);
-                    }
+                    }, duration);
                 }, duration);
-            }
+            }, duration);
         });
     }
 
