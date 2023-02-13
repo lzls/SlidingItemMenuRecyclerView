@@ -10,8 +10,10 @@
         android:theme="@style/AppTheme"
         android:supportsRtl="true"
         android:allowBackup="false"
-        tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".MainActivity">
+        tools:ignore="GoogleAppIndexingWarning,DataExtractionRules">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

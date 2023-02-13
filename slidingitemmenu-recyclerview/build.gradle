@@ -2,7 +2,6 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         //noinspection MinSdkTooLow
@@ -25,7 +24,7 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "androidx.appcompat:appcompat:$rootProject.ext.appcompatVersion"
-    api 'androidx.recyclerview:recyclerview:1.1.0'
+    api 'androidx.recyclerview:recyclerview:1.2.1'
 
     testImplementation "junit:junit:$rootProject.ext.testJunitVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.androidTestJunitVersion"
